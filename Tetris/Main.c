@@ -1,9 +1,10 @@
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define _CRT_SECURE_NO_WARNINGS
 
 const int itetrimonio[2][16] = { {0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0}, {0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0} };
 const int ltetrimonio[4][9] = { {1,0,0,1,1,1,0,0,0},{0,1,1,0,1,0,0,1,0},{0,0,0,1,1,1,0,0,1},{0,1,0,0,1,0,1,1,0} };
@@ -167,32 +168,33 @@ void rotate_tetrimonio(int GameBoard[16][10], struct tetrimonio* tet) {
 
 //this function moves a tetrimonio down
 int move_tetrimonio(int GameBoard[16][10], struct tetrimonio* tet) {
+    int movableBlock = 0;
     int movable = 1;
     if (tet->y + getTetrimonioWidth(tet->type) < 16)
     {
-        for (int i = tet->y; i < getTetrimonioWidth(tet->type) + tet->y; i++) {
-            for (int j = tet->x; j < getTetrimonioWidth(tet->type) + tet->x; j++)
-            {
-                if (GameBoard[i][j] == 1 && GameBoard[i + 1][j] == 2)
-                    movable = 0;
+        movableBlock = 1;
+    }
+
+    for (int i = 0; i < 15; i++) {
+        for (int j = 0; j < 10; j++) {
+            if (GameBoard[i][j] == 1 && GameBoard[i + 1][j] == 2 //genau anschauen
+                || GameBoard[i + 1][j] == 1 && i+1 == 15) {
+                movable = 0;
             }
         }
     }
-    else {
-        movable = 0;
-    }
-    //int moved = 0;
+
     if (movable) {
         for (int i = 15; i > -1; i--) {
             for (int j = 9; j > -1; j--) {
-                if (GameBoard[i][j] == 1){ //&& i != 15 && GameBoard[i + 1][j] < 1) {
+                if (GameBoard[i][j] == 1){
                     GameBoard[i][j] = 0;
                     GameBoard[i + 1][j] = 1;
-                    //moved = 1;
                 }
             }
         }
-        tet->y++;
+        if(movableBlock)
+            tet->y++;
     }
     else {
         for (int  i = 0; i < 16; i++)
@@ -203,66 +205,74 @@ int move_tetrimonio(int GameBoard[16][10], struct tetrimonio* tet) {
             }
         }
     }
-
     return movable;
-    //tet->y += moved;
 }
 
 //this function moves a tetrimonio right
 void move_tetrimonio_right(int GameBoard[16][10], struct tetrimonio* tet) {
+    int movableBlock = 0;
     int movable = 1;
     if (tet->x + getTetrimonioWidth(tet->type) < 10)
     {
-        for (int i = tet->y; i < getTetrimonioWidth(tet->type) + tet->y; i++) {
-            if (GameBoard[i][tet->x + getTetrimonioWidth(tet->type)] == 2) {
+        movableBlock = 1;
+    }
+
+    for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (GameBoard[i][j] == 1 && GameBoard[i][j + 1] == 2 //genau anschauen
+                || GameBoard[i][j + 1] == 1 && j + 1 == 9) {
                 movable = 0;
             }
         }
-    }
-    else {
-        movable = 0;
     }
 
     if (movable) {
         for (int i = 15; i > -1; i--) {
             for (int j = 9; j > -1; j--)
             {
-                if (GameBoard[i][j] == 1) {
+                if (GameBoard[i][j] == 1 && j < 9) {
                     GameBoard[i][j] = 0;
                     GameBoard[i][j + 1] = 1;
                 }
             }
         }
-        tet->x++;
+        if(movableBlock)
+            tet->x++;
     }
 }
 
 //this function moves a tetrimonio left
 void move_tetrimonio_left(int GameBoard[16][10], struct tetrimonio* tet) {
     int movable = 1;
+    int movableBlock = 0;
     if (tet->x > 0)
     {
-        for (int i = tet->y; i < getTetrimonioWidth(tet->type) + tet->y; i++) {
-            if (GameBoard[i][tet->x - 1] == 2) {
+        movableBlock = 1;
+    }
+
+    for (int i = 0; i < 16; i++) {
+        for (int j = 1; j < 10; j++) {
+            if (GameBoard[i][j] == 1 && GameBoard[i][j - 1] == 2 //genau anschauen
+                || GameBoard[i][j - 1] == 1 && j - 1 == 0) {
                 movable = 0;
             }
         }
-    }
-    else {
-        movable = 0;
     }
 
     if (movable) {
         for (int i = 0; i < 16; i++) {
             for (int j = 0; j < 10; j++)
             {
-                if (GameBoard[i][j] == 1) {
+                if (GameBoard[i][j] == 1 && j > 0) {
                     GameBoard[i][j] = 0;
                     GameBoard[i][j - 1] = 1;
                 }
             }
         }
-        tet->x--;
+        if (movableBlock)
+        {
+            tet->x--;
+        }
     }
 }
 
@@ -320,6 +330,8 @@ int getPoints(int GameBoard[16][10]) {
 
 int main()
 {
+
+    ALLEGRO_SAMPLE* sample = NULL;
     //init rand function
     srand(time(NULL));
 
@@ -327,11 +339,42 @@ int main()
     int GameBoard[16][10] = { 0 };
     
     //init allegro components
-    al_init();
-    al_install_keyboard();
-    al_init_primitives_addon();
-    al_init_font_addon();
+    if (!al_init()) {
+        fprintf(stderr, "failed to initialize allegro!\n");
+        return -1;
+    }
+    if (!al_install_keyboard()) {
+        fprintf(stderr, "failed to initialize keyboard!\n");
+        return -1;
+    }
+    if (!al_init_primitives_addon()) {
+        fprintf(stderr, "failed to initialize primitives!\n");
+        return -1;
+    }
+    if (!al_init_font_addon()) {
+        fprintf(stderr, "failed to initialize fonts!\n");
+        return -1;
+    }
+    if (!al_install_audio()) {
+        fprintf(stderr, "failed to initialize audio!\n");
+        return -1;
+    }
+    if (!al_init_acodec_addon()) {
+        fprintf(stderr, "failed to initialize audio codecs!\n");
+        return -1;
+    }
 
+    if (!al_reserve_samples(1)) {
+        fprintf(stderr, "failed to reserve samples!\n");
+        return -1;
+    }
+
+    sample = al_load_sample("Tetris.wav");
+
+    if (!sample) {
+        printf("Audio clip sample not loaded!\n");
+        return -1;
+    }
 
     //create display
     ALLEGRO_TIMER* timer = al_create_timer(1.0 / 3);
@@ -353,9 +396,9 @@ int main()
     int score = 0;
 
     al_start_timer(timer);
+    al_play_sample(sample, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
     while (1)
     {
-
 
         al_wait_for_event(queue, &event);
 

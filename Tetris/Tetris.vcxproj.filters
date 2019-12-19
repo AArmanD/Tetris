@@ -30,4 +30,9 @@
       <Filter>Quelldateien</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="Tetris.wav">
+      <Filter>Ressourcendateien</Filter>
+    </Media>
+  </ItemGroup>
 </Project>
