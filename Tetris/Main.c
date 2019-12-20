@@ -9,7 +9,7 @@
 const int itetrimonio[2][16] = { {0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0}, {0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0} };
 const int ltetrimonio[4][9] = { {1,0,0,1,1,1,0,0,0},{0,1,1,0,1,0,0,1,0},{0,0,0,1,1,1,0,0,1},{0,1,0,0,1,0,1,1,0} };
 const int qtetrimonio[1][4] = { 1,1,1,1 };
-const int ttetrimonio[4][9] = { {0,0,0,0,1,0,1,1,1},{1,0,0,1,1,0,1,0,0},{1,1,1,0,1,0,0,0,0},{0,0,1,0,1,1,0,0,1} };
+const int ttetrimonio[4][9] = { {0,1,0,1,1,1,0,0,0},{0,1,0,0,1,1,0,1,0},{0,0,0,1,1,1,0,1,0},{0,0,1,0,1,1,0,0,1} };
 const int ztetrimonio[2][9] = { {0,1,1,1,1,0,0,0,0},{0,1,0,0,1,1,0,0,1} };
 
 //struct to determine where a tetrimonio of a distinct type is and which color it has
@@ -328,6 +328,16 @@ int getPoints(int GameBoard[16][10]) {
     return points;
 }
 
+int checkLost(int GameBoard[16][10]) {
+    for (int j = 0; j < 10; j++) {
+        if (GameBoard[3][j] == 2)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main()
 {
 
@@ -369,7 +379,7 @@ int main()
         return -1;
     }
 
-    sample = al_load_sample("Tetris.wav");
+    sample = al_load_sample("Tetris.ogg");
 
     if (!sample) {
         printf("Audio clip sample not loaded!\n");
@@ -394,28 +404,43 @@ int main()
     int started = 0;
     struct tetrimonio tet;
     int score = 0;
+    int lost = 0;
 
     al_start_timer(timer);
     al_play_sample(sample, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, NULL);
     while (1)
     {
-
+        int lost = checkLost(GameBoard);
         al_wait_for_event(queue, &event);
 
         if (event.type == ALLEGRO_EVENT_TIMER)
             redraw = true;
         else if(event.type == ALLEGRO_EVENT_KEY_DOWN){
-            switch (event.keyboard.keycode)
+            if (!lost) {
+                switch (event.keyboard.keycode)
+                {
+                case ALLEGRO_KEY_UP:
+                    rotate_tetrimonio(GameBoard, &tet);
+                    break;
+                case ALLEGRO_KEY_RIGHT:
+                    move_tetrimonio_right(GameBoard, &tet);
+                    break;
+                case ALLEGRO_KEY_LEFT:
+                    move_tetrimonio_left(GameBoard, &tet);
+                    break;
+                }
+            }
+            else if(event.keyboard.keycode == ALLEGRO_KEY_ENTER && lost)
             {
-            case ALLEGRO_KEY_UP:
-                rotate_tetrimonio(GameBoard, &tet);
-                break;
-            case ALLEGRO_KEY_RIGHT:
-                move_tetrimonio_right(GameBoard, &tet);
-                break;
-            case ALLEGRO_KEY_LEFT:
-                move_tetrimonio_left(GameBoard, &tet);
-                break;
+                for (int i = 0; i < 16; i++) {
+                    for (int j = 0; j < 10; j++) {
+                        GameBoard[i][j] = 0;
+                    }
+                    printf("\n");
+                }
+                lost = 0;
+                started = 0;
+                score = 0;
             }
         }
         else if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
@@ -423,47 +448,59 @@ int main()
 
         if (redraw && al_is_event_queue_empty(queue))
         {
-            //generate and draw new tetrimonios
-            if (started == 0) {
-                tet = create_tetrimonio();
-                started = 1;
-                draw_tetrimonio(GameBoard, tet);
-            }
-            else {
-                if (!move_tetrimonio(GameBoard, &tet))
-                    started = 0;
-            }
-            
-            char scoreString[50];
-            sprintf(scoreString, "Score: %d", score);
+            if (lost == 0) {
+                //generate and draw new tetrimonios
+                if (started == 0) {
+                    tet = create_tetrimonio();
+                    started = 1;
+                    draw_tetrimonio(GameBoard, tet);
+                }
+                else {
+                    if (!move_tetrimonio(GameBoard, &tet))
+                        started = 0;
+                }
 
-            score += getPoints(GameBoard);
+                char scoreString[50];
+                sprintf(scoreString, "Score: %d", score);
 
-            al_clear_to_color(al_map_rgb(0, 0, 0));
-            al_draw_text(font, al_map_rgb(255, 255, 255), 510, 20, 0, "Next:");
-            al_draw_text(font, al_map_rgb(255, 255, 255), 510, 70, 0, scoreString);
+                score += getPoints(GameBoard);
 
-            for (int i = 0; i < 800; i+= 50) {
-                for (int j = 0; j < 500; j += 50) {
-                    if (GameBoard[i/50][j/50] != 0) {
-                        al_draw_filled_rectangle((double)j, (double)i, (double)j + 50, (double)i + 50, al_map_rgb(0, 0, 255));
+                al_clear_to_color(al_map_rgb(0, 0, 0));
+                al_draw_text(font, al_map_rgb(255, 255, 255), 510, 20, 0, "Next:");
+                al_draw_text(font, al_map_rgb(255, 255, 255), 510, 70, 0, scoreString);
+
+                for (int i = 0; i < 800; i += 50) {
+                    for (int j = 0; j < 500; j += 50) {
+                        if (GameBoard[i / 50][j / 50] != 0) {
+                            al_draw_filled_rectangle((double)j, (double)i, (double)j + 50, (double)i + 50, al_map_rgb(0, 0, 255));
+                        }
                     }
                 }
-            }
 
-            al_draw_line(500, 0, 500, 800, al_map_rgb(255,255,255), 3);
-            al_flip_display();
+                al_draw_line(500, 0, 500, 800, al_map_rgb(255, 255, 255), 3);
+                al_flip_display();
 
-            redraw = false;
+                redraw = false;
 
 
-            for (int i = 0; i < 16; i++) {
-                for (int j = 0; j < 10; j++) {
-                    printf("%d ", GameBoard[i][j]);
+                for (int i = 0; i < 16; i++) {
+                    for (int j = 0; j < 10; j++) {
+                        printf("%d ", GameBoard[i][j]);
+                    }
+                    printf("\n");
                 }
-                printf("\n");
+                printf("--\n");
             }
-            printf("--\n");
+            else
+            {
+                char scoreString[50];
+                sprintf(scoreString, "Score: %d", score);
+                al_draw_text(font, al_map_rgb(255, 255, 255), 325, 395, ALLEGRO_ALIGN_CENTRE, "You lost");
+                al_draw_text(font, al_map_rgb(255, 255, 255), 325, 405, ALLEGRO_ALIGN_CENTRE, scoreString);
+                al_draw_text(font, al_map_rgb(255, 255, 255), 325, 415, ALLEGRO_ALIGN_CENTRE, "Press Enter to restart");
+                al_flip_display();
+                redraw = false;
+            }
         }
     }
 

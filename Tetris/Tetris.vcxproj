@@ -165,12 +165,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Tetris.ogg" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameLogic.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Media Include="Tetris.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

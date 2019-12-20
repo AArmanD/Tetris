@@ -24,15 +24,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Tetris.ogg">
+      <Filter>Ressourcendateien</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameLogic.h">
       <Filter>Quelldateien</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Media Include="Tetris.wav">
-      <Filter>Ressourcendateien</Filter>
-    </Media>
   </ItemGroup>
 </Project>
